@@ -192,21 +192,24 @@ choose_coef_by_sex <- function(sex, coef, list = list_coef) {
 }
 
 
+## ----IDR----------------------------------------------------------------------
+IDR <- log(1 + disc)
+
 ## ----disc_LY_pre--------------------------------------------------------------
-disc_ly1_fn <- function(t, p = disc) {
-  if (p < 0.000001) { # to avoid the possible numerical instability in case p is too small
+disc_ly1_fn <- function(t, r = IDR) {
+  if (r < 0.000001) { # to avoid the possible numerical instability in case r is too small
     t
   }else{
-    (1 - exp(-p * t)) / p
+    (1 - exp(-r * t)) / r
   }
 }
 
 ## ----disc_LY_post-------------------------------------------------------------
-disc_ly2_fn <- function(t1, t2, p = disc) {
-  if (p < 0.000001) { # to avoid the possible numerical instability in case p is too small
+disc_ly2_fn <- function(t1, t2, r = IDR) {
+  if (r < 0.000001) { # to avoid the possible numerical instability in case r is too small
     t2
   }else{
-    ((exp(p * t2) - 1) * exp(- p * t1 - p * t2)) / p
+    ((exp(r * t2) - 1) * exp(- r * t1 - r * t2)) / r
   }
 }
 
@@ -337,20 +340,20 @@ print(paste0("Check the R-squared for ",
 
 
 ## ----disc_cost_pre_l----------------------------------------------------------
-disc_cost1_fn <- function(C_0, b_1, t, p = disc) {
-  if (p < 0.000001) { # to avoid the possible numerical instability in case p is too small
+disc_cost1_fn <- function(C_0, b_1, t, r = IDR) {
+  if (r < 0.000001) { # to avoid the possible numerical instability in case r is too small
     t * (t * b_1 + 2 * C_0) / 2
   }else{
-    (b_1 + C_0 * p) / p^2 - (exp(-p * t) * ((p * t + 1) * b_1 + C_0 * p)) / p^2
+    (b_1 + C_0 * r) / r^2 - (exp(-r * t) * ((r * t + 1) * b_1 + C_0 * r)) / r^2
   }
 }
 
 ## -----------------------------------------------------------------------------
-Int1_FN <- function(K, T_1, A_3, A_2, A_1, A_0, b_2, p = disc) {
-  if (p < 0.000001) { # to avoid the possible numerical instability in case p is too small
+Int1_FN <- function(K, T_1, A_3, A_2, A_1, A_0, b_2, r = IDR) {
+  if (r < 0.000001) { # to avoid the possible numerical instability in case r is too small
     ((3 * A_3 * T_1^4 + 4 * A_2 * T_1^3 + 6 * A_1 * T_1^2 + 12 * A_0 * T_1) / 12 - (3 * A_3 * K^4 + 4 * A_2 * K^3 + 6 * A_1 * K^2 + 12 * A_0 * K) / 12) * b_2
   }else{
-    ((((A_3 * K^3 + A_2 * K^2 + A_1 * K + A_0) * p^3 + (3 * A_3 * K^2 + 2 * A_2 * K + A_1) * p^2 + (6 * A_3 * K + 2 * A_2) * p + 6 * A_3) * exp(-K * p) - ((A_3 * T_1^3 + A_2 * T_1^2 + A_1 * T_1 + A_0) * p^3 + (3 * A_3 * T_1^2 + 2 * A_2 * T_1 + A_1) * p^2 + (6 * A_3 * T_1 + 2 * A_2) * p + 6 * A_3) * exp(-T_1 * p)) * b_2) / p^4
+    ((((A_3 * K^3 + A_2 * K^2 + A_1 * K + A_0) * r^3 + (3 * A_3 * K^2 + 2 * A_2 * K + A_1) * r^2 + (6 * A_3 * K + 2 * A_2) * r + 6 * A_3) * exp(-K * r) - ((A_3 * T_1^3 + A_2 * T_1^2 + A_1 * T_1 + A_0) * r^3 + (3 * A_3 * T_1^2 + 2 * A_2 * T_1 + A_1) * r^2 + (6 * A_3 * T_1 + 2 * A_2) * r + 6 * A_3) * exp(-T_1 * r)) * b_2) / r^4
   }
 }
 
@@ -358,7 +361,7 @@ Int1_FN <- function(K, T_1, A_3, A_2, A_1, A_0, b_2, p = disc) {
 ## ----disc_cost_pre_nl---------------------------------------------------------
 disc_cost1_nl_fn <- function(v_knots, 
                              v_a_1j, v_a_2j, v_a_3j,
-                             b_2, t, p = disc) {
+                             b_2, t, r = IDR) {
   
   k_1 <- v_knots[1]
   k_2 <- v_knots[2]
@@ -377,20 +380,20 @@ disc_cost1_nl_fn <- function(v_knots,
   a_31 <- v_a_3j[2]
   a_30 <- v_a_3j[1]
 
-  if (p < 0.000001) { # to avoid the possible numerical instability in case p is too small
+  if (r < 0.000001) { # to avoid the possible numerical instability in case r is too small
     output <- 0 + # t < k_1
-      Int1_FN(k_1, t, a_13, a_12, a_11, a_10, b_2, p) * (t >= k_1) * (t < k_2) + # k_1 <= t < k_2
-      Int1_FN(k_1, k_2, a_13, a_12, a_11, a_10, b_2, p) * (t >= k_2) + # t >= k_2
-      Int1_FN(k_2, t, a_23, a_22, a_21, a_20, b_2, p) * (t >= k_2)  * (t < k_3) + # k_2 <= t < k_3
-      Int1_FN(k_2, k_3, a_23, a_22, a_21, a_20, b_2, p) * (t >= k_3) + # k_2 <= t < k_3
+      Int1_FN(k_1, t, a_13, a_12, a_11, a_10, b_2, r) * (t >= k_1) * (t < k_2) + # k_1 <= t < k_2
+      Int1_FN(k_1, k_2, a_13, a_12, a_11, a_10, b_2, r) * (t >= k_2) + # t >= k_2
+      Int1_FN(k_2, t, a_23, a_22, a_21, a_20, b_2, r) * (t >= k_2)  * (t < k_3) + # k_2 <= t < k_3
+      Int1_FN(k_2, k_3, a_23, a_22, a_21, a_20, b_2, r) * (t >= k_3) + # k_2 <= t < k_3
       (((t - k_3) * ((t + k_3) * a_31 + 2 * a_30) * b_2) / 2) * (t >= k_3) # t >= k_3
   }else{
     output <- 0 + # t < k_1
-      Int1_FN(k_1, t, a_13, a_12, a_11, a_10, b_2, p) * (t >= k_1) * (t < k_2) + # k_1 <= t < k_2
-      Int1_FN(k_1, k_2, a_13, a_12, a_11, a_10, b_2, p) * (t >= k_2) + # t >= k_2
-      Int1_FN(k_2, t, a_23, a_22, a_21, a_20, b_2, p) * (t >= k_2)  * (t < k_3) + # k_2 <= t < k_3
-      Int1_FN(k_2, k_3, a_23, a_22, a_21, a_20, b_2, p) * (t >= k_3) + # k_2 <= t < k_3
-      (((((a_31 * k_3 + a_30) * p + a_31) * exp(-k_3 * p) - (a_31 * p * t + a_30 * p + a_31) * exp(-p * t)) * b_2) / p^2) * (t >= k_3) # t >= k_3
+      Int1_FN(k_1, t, a_13, a_12, a_11, a_10, b_2, r) * (t >= k_1) * (t < k_2) + # k_1 <= t < k_2
+      Int1_FN(k_1, k_2, a_13, a_12, a_11, a_10, b_2, r) * (t >= k_2) + # t >= k_2
+      Int1_FN(k_2, t, a_23, a_22, a_21, a_20, b_2, r) * (t >= k_2)  * (t < k_3) + # k_2 <= t < k_3
+      Int1_FN(k_2, k_3, a_23, a_22, a_21, a_20, b_2, r) * (t >= k_3) + # k_2 <= t < k_3
+      (((((a_31 * k_3 + a_30) * r + a_31) * exp(-k_3 * r) - (a_31 * r * t + a_30 * r + a_31) * exp(-r * t)) * b_2) / r^2) * (t >= k_3) # t >= k_3
   }
   
   return(output)
@@ -399,23 +402,23 @@ disc_cost1_nl_fn <- function(v_knots,
 ## ----disc_fn------------------------------------------------------------------
 
 
-disc_cost2_fn <- function(C_0, b_3, t1, t2, p = disc) {
+disc_cost2_fn <- function(C_0, b_3, t1, t2, r = IDR) {
   # t1 < t2
-  if (p < 0.000001) { # to avoid the possible numerical instability in case p is too small
+  if (r < 0.000001) { # to avoid the possible numerical instability in case r is too small
     (t2 * (t2 * b_3 + 2 * C_0)) / 2
   }else{
-    (exp(-p * t1) * (b_3 + C_0 * p)) / p^2 - (exp(-p * t2 - p * t1) * ((p * t2 + 1) * b_3 + C_0 * p)) / p^2
+    (exp(-r * t1) * (b_3 + C_0 * r)) / r^2 - (exp(-r * t2 - r * t1) * ((r * t2 + 1) * b_3 + C_0 * r)) / r^2
   }
 }
 
 
 
 ## -----------------------------------------------------------------------------
-Int2_FN <- function(T_1, T_2, A_3, A_2, A_1, A_0, K, b_4, p = disc) {
-  if (p < 0.000001) { # to avoid the possible numerical instability in case p is too small
+Int2_FN <- function(T_1, T_2, A_3, A_2, A_1, A_0, K, b_4, r = IDR) {
+  if (r < 0.000001) { # to avoid the possible numerical instability in case r is too small
     ((3 * A_3 * T_2^4 + 4 * A_2 * T_2^3 + 6 * A_1 * T_2^2 + 12 * A_0 * T_2) / 12 - (3 * A_3 * K^4 + 4 * A_2 * K^3 + 6 * A_1 * K^2 + 12 * A_0 * K) / 12) * b_4
   }else{
-    (((1 + p)^(-T_1-K) * ((A_3 * K^3 + A_2 * K^2 + A_1 * K + A_0) * log(1 + p)^3 + (3 * A_3 * K^2 + 2 * A_2 * K + A_1) * log(1 + p)^2 + (6 * A_3 * K + 2 * A_2) * log(1 + p) + 6 * A_3) - (1 + p)^(-T_1-T_2) * ((A_3 * T_2^3 + A_2 * T_2^2 + A_1 * T_2 + A_0) * log(1 + p)^3 + (3 * A_3 * T_2^2 + 2 * A_2 * T_2 + A_1) * log(1 + p)^2 + (6 * A_3 * T_2 + 2 * A_2) * log(1 + p) + 6 * A_3)) * b_4) / log(1 + p)^4
+    (((1 + r)^(-T_1-K) * ((A_3 * K^3 + A_2 * K^2 + A_1 * K + A_0) * log(1 + r)^3 + (3 * A_3 * K^2 + 2 * A_2 * K + A_1) * log(1 + r)^2 + (6 * A_3 * K + 2 * A_2) * log(1 + r) + 6 * A_3) - (1 + r)^(-T_1-T_2) * ((A_3 * T_2^3 + A_2 * T_2^2 + A_1 * T_2 + A_0) * log(1 + r)^3 + (3 * A_3 * T_2^2 + 2 * A_2 * T_2 + A_1) * log(1 + r)^2 + (6 * A_3 * T_2 + 2 * A_2) * log(1 + r) + 6 * A_3)) * b_4) / log(1 + r)^4
   }
 }
 
@@ -424,7 +427,7 @@ Int2_FN <- function(T_1, T_2, A_3, A_2, A_1, A_0, K, b_4, p = disc) {
 
 disc_cost2_nl_fn <- function(v_knots, 
                              v_a_1j, v_a_2j, v_a_3j,
-                             b_4, t_1, t_2, p = disc) {
+                             b_4, t_1, t_2, r = IDR) {
   
   k_1 <- v_knots[1]
   k_2 <- v_knots[2]
@@ -444,20 +447,20 @@ disc_cost2_nl_fn <- function(v_knots,
   a_30 <- v_a_3j[1]
 
   # t_2 >= k_3
-  if (p < 0.000001) { # to avoid the possible numerical instability in case p is too small
+  if (r < 0.000001) { # to avoid the possible numerical instability in case r is too small
     output <- 0 + # t_2 < k_1
-      Int2_FN(t_1, t_2, a_13, a_12, a_11, a_10, k_1, b_4, p) * (t_2 >= k_1) * (t_2 < k_2) + # k_1 <= t_2 < k_2
-      Int2_FN(t_1, k_2, a_13, a_12, a_11, a_10, k_1, b_4, p) * (t_2 >= k_2) + # t_2 >= k_2
-      Int2_FN(t_1, t_2, a_23, a_22, a_21, a_20, k_2, b_4, p) * (t_2 >= k_2)  * (t_2 < k_3) + # k_2 <= t_2 < k_3
-      Int2_FN(t_1, k_3, a_23, a_22, a_21, a_20, k_2, b_4, p) * (t_2 >= k_3) + # k_2 <= t_2 < k_3
+      Int2_FN(t_1, t_2, a_13, a_12, a_11, a_10, k_1, b_4, r) * (t_2 >= k_1) * (t_2 < k_2) + # k_1 <= t_2 < k_2
+      Int2_FN(t_1, k_2, a_13, a_12, a_11, a_10, k_1, b_4, r) * (t_2 >= k_2) + # t_2 >= k_2
+      Int2_FN(t_1, t_2, a_23, a_22, a_21, a_20, k_2, b_4, r) * (t_2 >= k_2)  * (t_2 < k_3) + # k_2 <= t_2 < k_3
+      Int2_FN(t_1, k_3, a_23, a_22, a_21, a_20, k_2, b_4, r) * (t_2 >= k_3) + # k_2 <= t_2 < k_3
       (((t_2 - k_3) * ((t_2 + k_3) * a_31 + 2 * a_30) * b_4) / 2) * (t_2 >= k_3) # t_2 >= k_3
   }else{
     output <- 0 + # t_2 < k_1
-      Int2_FN(t_1, t_2, a_13, a_12, a_11, a_10, k_1, b_4, p) * (t_2 >= k_1) * (t_2 < k_2) + # k_1 <= t_2 < k_2
-      Int2_FN(t_1, k_2, a_13, a_12, a_11, a_10, k_1, b_4, p) * (t_2 >= k_2) + # t_2 >= k_2
-      Int2_FN(t_1, t_2, a_23, a_22, a_21, a_20, k_2, b_4, p) * (t_2 >= k_2)  * (t_2 < k_3) + # k_2 <= t_2 < k_3
-      Int2_FN(t_1, k_3, a_23, a_22, a_21, a_20, k_2, b_4, p) * (t_2 >= k_3) + # k_2 <= t_2 < k_3
-      (b_4 * (((a_31 * k_3 + a_30) * p + a_31) * exp(-p * t_1 - k_3 * p) - (a_31 * p * t_2 + a_30 * p + a_31) * exp(-p * t_2 - p * t_1))) / p^2 * (t_2 >= k_3) # t_2 >= k_3
+      Int2_FN(t_1, t_2, a_13, a_12, a_11, a_10, k_1, b_4, r) * (t_2 >= k_1) * (t_2 < k_2) + # k_1 <= t_2 < k_2
+      Int2_FN(t_1, k_2, a_13, a_12, a_11, a_10, k_1, b_4, r) * (t_2 >= k_2) + # t_2 >= k_2
+      Int2_FN(t_1, t_2, a_23, a_22, a_21, a_20, k_2, b_4, r) * (t_2 >= k_2)  * (t_2 < k_3) + # k_2 <= t_2 < k_3
+      Int2_FN(t_1, k_3, a_23, a_22, a_21, a_20, k_2, b_4, r) * (t_2 >= k_3) + # k_2 <= t_2 < k_3
+      (b_4 * (((a_31 * k_3 + a_30) * r + a_31) * exp(-r * t_1 - k_3 * r) - (a_31 * r * t_2 + a_30 * r + a_31) * exp(-r * t_2 - r * t_1))) / r^2 * (t_2 >= k_3) # t_2 >= k_3
   }
   
   return(output)
@@ -466,16 +469,16 @@ disc_cost2_nl_fn <- function(v_knots,
 
 
 ## -----------------------------------------------------------------------------
-Int3_FN <- function(K, T_1, U, p = disc) {
-  if (p < 0.000001) { # to avoid the possible numerical instability in case p is too small
+Int3_FN <- function(K, T_1, U, r = IDR) {
+  if (r < 0.000001) { # to avoid the possible numerical instability in case r is too small
     U * (T_1 - K)
   }else{
-    U / p * (exp(-K * p) - exp(-T_1 * p))
+    U / r * (exp(-K * r) - exp(-T_1 * r))
   }
 }
 
 ## ----disc_qaly_pre------------------------------------------------------------
-disc_qaly1_fn <- function(age, u_norms, t, p = disc) {
+disc_qaly1_fn <- function(age, u_norms, t, r = IDR) {
   
   u_1 <- u_norms[1]
   u_2 <- u_norms[2]
@@ -486,77 +489,77 @@ disc_qaly1_fn <- function(age, u_norms, t, p = disc) {
   u_7 <- u_norms[7]
 
   output <- (age < 25) * (
-      Int3_FN(0, t, u_1, p) * (t + age < 25) +
-      Int3_FN(0, 25 - age, u_1, p) * (t + age >= 25) + 
-      Int3_FN(25 - age, t, u_2, p) * (t + age >= 25) * (t + age < 35) + 
-      Int3_FN(25 - age, 35 - age, u_2, p) * (t + age >= 35) + 
-      Int3_FN(35 - age, t, u_3, p) * (t + age >= 35) * (t + age < 45) + 
-      Int3_FN(35 - age, 45 - age, u_3, p) * (t + age >= 45) + 
-      Int3_FN(45 - age, t, u_4, p) * (t + age >= 45) * (t + age < 55) + 
-      Int3_FN(45 - age, 55 - age, u_4, p) * (t + age >= 55) + 
-      Int3_FN(55 - age, t, u_5, p) * (t + age >= 55) * (t + age < 65) + 
-      Int3_FN(55 - age, 65 - age, u_5, p) * (t + age >= 65) + 
-      Int3_FN(65 - age, t, u_6, p) * (t + age >= 65) * (t + age < 75) + 
-      Int3_FN(65 - age, 75 - age, u_6, p) * (t + age >= 75) + 
-      Int3_FN(75 - age, t, u_7, p) * (t + age >= 75)
+      Int3_FN(0, t, u_1, r) * (t + age < 25) +
+      Int3_FN(0, 25 - age, u_1, r) * (t + age >= 25) + 
+      Int3_FN(25 - age, t, u_2, r) * (t + age >= 25) * (t + age < 35) + 
+      Int3_FN(25 - age, 35 - age, u_2, r) * (t + age >= 35) + 
+      Int3_FN(35 - age, t, u_3, r) * (t + age >= 35) * (t + age < 45) + 
+      Int3_FN(35 - age, 45 - age, u_3, r) * (t + age >= 45) + 
+      Int3_FN(45 - age, t, u_4, r) * (t + age >= 45) * (t + age < 55) + 
+      Int3_FN(45 - age, 55 - age, u_4, r) * (t + age >= 55) + 
+      Int3_FN(55 - age, t, u_5, r) * (t + age >= 55) * (t + age < 65) + 
+      Int3_FN(55 - age, 65 - age, u_5, r) * (t + age >= 65) + 
+      Int3_FN(65 - age, t, u_6, r) * (t + age >= 65) * (t + age < 75) + 
+      Int3_FN(65 - age, 75 - age, u_6, r) * (t + age >= 75) + 
+      Int3_FN(75 - age, t, u_7, r) * (t + age >= 75)
     ) + (age >= 25) * (age < 35) * (
-      Int3_FN(0, t, u_2, p) * (t + age < 35) +
-      Int3_FN(0, 35 - age, u_3, p) * (t + age >= 35) +
-      Int3_FN(35 - age, t, u_3, p) * (t + age >= 35) * (t + age < 45) + 
-      Int3_FN(35 - age, 45 - age, u_3, p) * (t + age >= 45) + 
-      Int3_FN(45 - age, t, u_4, p) * (t + age >= 45) * (t + age < 55) + 
-      Int3_FN(45 - age, 55 - age, u_4, p) * (t + age >= 55) + 
-      Int3_FN(55 - age, t, u_5, p) * (t + age >= 55) * (t + age < 65) + 
-      Int3_FN(55 - age, 65 - age, u_5, p) * (t + age >= 65) + 
-      Int3_FN(65 - age, t, u_6, p) * (t + age >= 65) * (t + age < 75) + 
-      Int3_FN(65 - age, 75 - age, u_6, p) * (t + age >= 75) + 
-      Int3_FN(75 - age, t, u_7, p) * (t + age >= 75)
+      Int3_FN(0, t, u_2, r) * (t + age < 35) +
+      Int3_FN(0, 35 - age, u_3, r) * (t + age >= 35) +
+      Int3_FN(35 - age, t, u_3, r) * (t + age >= 35) * (t + age < 45) + 
+      Int3_FN(35 - age, 45 - age, u_3, r) * (t + age >= 45) + 
+      Int3_FN(45 - age, t, u_4, r) * (t + age >= 45) * (t + age < 55) + 
+      Int3_FN(45 - age, 55 - age, u_4, r) * (t + age >= 55) + 
+      Int3_FN(55 - age, t, u_5, r) * (t + age >= 55) * (t + age < 65) + 
+      Int3_FN(55 - age, 65 - age, u_5, r) * (t + age >= 65) + 
+      Int3_FN(65 - age, t, u_6, r) * (t + age >= 65) * (t + age < 75) + 
+      Int3_FN(65 - age, 75 - age, u_6, r) * (t + age >= 75) + 
+      Int3_FN(75 - age, t, u_7, r) * (t + age >= 75)
     ) + (age >= 35) * (age < 45) * (
-      Int3_FN(0, t, u_3, p) * (t + age < 45) +
-      Int3_FN(0, 45 - age, u_4, p) * (t + age >= 45) +
-      Int3_FN(45 - age, t, u_4, p) * (t + age >= 45) * (t + age < 55) + 
-      Int3_FN(45 - age, 55 - age, u_4, p) * (t + age >= 55) + 
-      Int3_FN(55 - age, t, u_5, p) * (t + age >= 55) * (t + age < 65) + 
-      Int3_FN(55 - age, 65 - age, u_5, p) * (t + age >= 65) + 
-      Int3_FN(65 - age, t, u_6, p) * (t + age >= 65) * (t + age < 75) + 
-      Int3_FN(65 - age, 75 - age, u_6, p) * (t + age >= 75) + 
-      Int3_FN(75 - age, t, u_7, p) * (t + age >= 75)
+      Int3_FN(0, t, u_3, r) * (t + age < 45) +
+      Int3_FN(0, 45 - age, u_4, r) * (t + age >= 45) +
+      Int3_FN(45 - age, t, u_4, r) * (t + age >= 45) * (t + age < 55) + 
+      Int3_FN(45 - age, 55 - age, u_4, r) * (t + age >= 55) + 
+      Int3_FN(55 - age, t, u_5, r) * (t + age >= 55) * (t + age < 65) + 
+      Int3_FN(55 - age, 65 - age, u_5, r) * (t + age >= 65) + 
+      Int3_FN(65 - age, t, u_6, r) * (t + age >= 65) * (t + age < 75) + 
+      Int3_FN(65 - age, 75 - age, u_6, r) * (t + age >= 75) + 
+      Int3_FN(75 - age, t, u_7, r) * (t + age >= 75)
     ) + (age >= 45) * (age < 55) * (
-      Int3_FN(0, t, u_4, p) * (t + age < 55) +
-      Int3_FN(0, 55 - age, u_5, p) * (t + age >= 55) +
-      Int3_FN(55 - age, t, u_5, p) * (t + age >= 55) * (t + age < 65) + 
-      Int3_FN(55 - age, 65 - age, u_5, p) * (t + age >= 65) + 
-      Int3_FN(65 - age, t, u_6, p) * (t + age >= 65) * (t + age < 75) + 
-      Int3_FN(65 - age, 75 - age, u_6, p) * (t + age >= 75) + 
-      Int3_FN(75 - age, t, u_7, p) * (t + age >= 75)
+      Int3_FN(0, t, u_4, r) * (t + age < 55) +
+      Int3_FN(0, 55 - age, u_5, r) * (t + age >= 55) +
+      Int3_FN(55 - age, t, u_5, r) * (t + age >= 55) * (t + age < 65) + 
+      Int3_FN(55 - age, 65 - age, u_5, r) * (t + age >= 65) + 
+      Int3_FN(65 - age, t, u_6, r) * (t + age >= 65) * (t + age < 75) + 
+      Int3_FN(65 - age, 75 - age, u_6, r) * (t + age >= 75) + 
+      Int3_FN(75 - age, t, u_7, r) * (t + age >= 75)
     ) + (age >= 55) * (age < 65) * (
-      Int3_FN(0, t, u_5, p) * (t + age < 65) +
-      Int3_FN(0, 65 - age, u_6, p) * (t + age >= 65) +
-      Int3_FN(65 - age, t, u_6, p) * (t + age >= 65) * (t + age < 75) + 
-      Int3_FN(65 - age, 75 - age, u_6, p) * (t + age >= 75) + 
-      Int3_FN(75 - age, t, u_7, p) * (t + age >= 75)
+      Int3_FN(0, t, u_5, r) * (t + age < 65) +
+      Int3_FN(0, 65 - age, u_6, r) * (t + age >= 65) +
+      Int3_FN(65 - age, t, u_6, r) * (t + age >= 65) * (t + age < 75) + 
+      Int3_FN(65 - age, 75 - age, u_6, r) * (t + age >= 75) + 
+      Int3_FN(75 - age, t, u_7, r) * (t + age >= 75)
     ) + (age >= 65) * (age < 75) * (
-      Int3_FN(0, t, u_6, p) * (t + age < 75) +
-      Int3_FN(0, 75 - age, u_7, p) * (t + age >= 75) +
-      Int3_FN(75 - age, t, u_7, p) * (t + age >= 75)
+      Int3_FN(0, t, u_6, r) * (t + age < 75) +
+      Int3_FN(0, 75 - age, u_7, r) * (t + age >= 75) +
+      Int3_FN(75 - age, t, u_7, r) * (t + age >= 75)
     ) + (age >= 75) * (
-      Int3_FN(0, t, u_7, p)
+      Int3_FN(0, t, u_7, r)
     )
   
   return(output)
 }
 
 ## -----------------------------------------------------------------------------
-Int4_FN <- function(T_1, T_2, DU, p = disc) {
-  if (p < 0.000001) { # to avoid the possible numerical instability in case p is too small
+Int4_FN <- function(T_1, T_2, DU, r = IDR) {
+  if (r < 0.000001) { # to avoid the possible numerical instability in case r is too small
     DU * T_2
   }else{
-    (DU * (exp(p * T_2) - 1) * exp(-p * (T_2 + T_1))) / p
+    (DU * (exp(r * T_2) - 1) * exp(-r * (T_2 + T_1))) / r
   }
 }
 
 
-disc_qaly21_fn <- function(age, u_norms, t_1, t_2, du_1e, p = disc) {
+disc_qaly21_fn <- function(age, u_norms, t_1, t_2, du_1e, r = IDR) {
   
   u_1 <- u_norms[1]
   u_2 <- u_norms[2]
@@ -567,62 +570,62 @@ disc_qaly21_fn <- function(age, u_norms, t_1, t_2, du_1e, p = disc) {
   u_7 <- u_norms[7]
 
   output <- (age < 25) * (
-      Int3_FN(0, t_1 + t_2, u_1, p) * (t_1 + t_2 + age < 25) +
-      Int3_FN(0, 25 - age, u_1, p) * (t_1 + t_2 + age >= 25) + 
-      Int3_FN(25 - age, t_1 + t_2, u_2, p) * (t_1 + t_2 + age >= 25) * (t_1 + t_2 + age < 35) + 
-      Int3_FN(25 - age, 35 - age, u_2, p) * (t_1 + t_2 + age >= 35) + 
-      Int3_FN(35 - age, t_1 + t_2, u_3, p) * (t_1 + t_2 + age >= 35) * (t_1 + t_2 + age < 45) + 
-      Int3_FN(35 - age, 45 - age, u_3, p) * (t_1 + t_2 + age >= 45) + 
-      Int3_FN(45 - age, t_1 + t_2, u_4, p) * (t_1 + t_2 + age >= 45) * (t_1 + t_2 + age < 55) + 
-      Int3_FN(45 - age, 55 - age, u_4, p) * (t_1 + t_2 + age >= 55) + 
-      Int3_FN(55 - age, t_1 + t_2, u_5, p) * (t_1 + t_2 + age >= 55) * (t_1 + t_2 + age < 65) + 
-      Int3_FN(55 - age, 65 - age, u_5, p) * (t_1 + t_2 + age >= 65) + 
-      Int3_FN(65 - age, t_1 + t_2, u_6, p) * (t_1 + t_2 + age >= 65) * (t_1 + t_2 + age < 75) + 
-      Int3_FN(65 - age, 75 - age, u_6, p) * (t_1 + t_2 + age >= 75) + 
-      Int3_FN(75 - age, t_1 + t_2, u_7, p) * (t_1 + t_2 + age >= 75)
+      Int3_FN(0, t_1 + t_2, u_1, r) * (t_1 + t_2 + age < 25) +
+      Int3_FN(0, 25 - age, u_1, r) * (t_1 + t_2 + age >= 25) + 
+      Int3_FN(25 - age, t_1 + t_2, u_2, r) * (t_1 + t_2 + age >= 25) * (t_1 + t_2 + age < 35) + 
+      Int3_FN(25 - age, 35 - age, u_2, r) * (t_1 + t_2 + age >= 35) + 
+      Int3_FN(35 - age, t_1 + t_2, u_3, r) * (t_1 + t_2 + age >= 35) * (t_1 + t_2 + age < 45) + 
+      Int3_FN(35 - age, 45 - age, u_3, r) * (t_1 + t_2 + age >= 45) + 
+      Int3_FN(45 - age, t_1 + t_2, u_4, r) * (t_1 + t_2 + age >= 45) * (t_1 + t_2 + age < 55) + 
+      Int3_FN(45 - age, 55 - age, u_4, r) * (t_1 + t_2 + age >= 55) + 
+      Int3_FN(55 - age, t_1 + t_2, u_5, r) * (t_1 + t_2 + age >= 55) * (t_1 + t_2 + age < 65) + 
+      Int3_FN(55 - age, 65 - age, u_5, r) * (t_1 + t_2 + age >= 65) + 
+      Int3_FN(65 - age, t_1 + t_2, u_6, r) * (t_1 + t_2 + age >= 65) * (t_1 + t_2 + age < 75) + 
+      Int3_FN(65 - age, 75 - age, u_6, r) * (t_1 + t_2 + age >= 75) + 
+      Int3_FN(75 - age, t_1 + t_2, u_7, r) * (t_1 + t_2 + age >= 75)
     ) + (age >= 25) * (age < 35) * (
-      Int3_FN(0, t_1 + t_2, u_2, p) * (t_1 + t_2 + age < 35) +
-      Int3_FN(0, 35 - age, u_3, p) * (t_1 + t_2 + age >= 35) +
-      Int3_FN(35 - age, t_1 + t_2, u_3, p) * (t_1 + t_2 + age >= 35) * (t_1 + t_2 + age < 45) + 
-      Int3_FN(35 - age, 45 - age, u_3, p) * (t_1 + t_2 + age >= 45) + 
-      Int3_FN(45 - age, t_1 + t_2, u_4, p) * (t_1 + t_2 + age >= 45) * (t_1 + t_2 + age < 55) + 
-      Int3_FN(45 - age, 55 - age, u_4, p) * (t_1 + t_2 + age >= 55) + 
-      Int3_FN(55 - age, t_1 + t_2, u_5, p) * (t_1 + t_2 + age >= 55) * (t_1 + t_2 + age < 65) + 
-      Int3_FN(55 - age, 65 - age, u_5, p) * (t_1 + t_2 + age >= 65) + 
-      Int3_FN(65 - age, t_1 + t_2, u_6, p) * (t_1 + t_2 + age >= 65) * (t_1 + t_2 + age < 75) + 
-      Int3_FN(65 - age, 75 - age, u_6, p) * (t_1 + t_2 + age >= 75) + 
-      Int3_FN(75 - age, t_1 + t_2, u_7, p) * (t_1 + t_2 + age >= 75)
+      Int3_FN(0, t_1 + t_2, u_2, r) * (t_1 + t_2 + age < 35) +
+      Int3_FN(0, 35 - age, u_3, r) * (t_1 + t_2 + age >= 35) +
+      Int3_FN(35 - age, t_1 + t_2, u_3, r) * (t_1 + t_2 + age >= 35) * (t_1 + t_2 + age < 45) + 
+      Int3_FN(35 - age, 45 - age, u_3, r) * (t_1 + t_2 + age >= 45) + 
+      Int3_FN(45 - age, t_1 + t_2, u_4, r) * (t_1 + t_2 + age >= 45) * (t_1 + t_2 + age < 55) + 
+      Int3_FN(45 - age, 55 - age, u_4, r) * (t_1 + t_2 + age >= 55) + 
+      Int3_FN(55 - age, t_1 + t_2, u_5, r) * (t_1 + t_2 + age >= 55) * (t_1 + t_2 + age < 65) + 
+      Int3_FN(55 - age, 65 - age, u_5, r) * (t_1 + t_2 + age >= 65) + 
+      Int3_FN(65 - age, t_1 + t_2, u_6, r) * (t_1 + t_2 + age >= 65) * (t_1 + t_2 + age < 75) + 
+      Int3_FN(65 - age, 75 - age, u_6, r) * (t_1 + t_2 + age >= 75) + 
+      Int3_FN(75 - age, t_1 + t_2, u_7, r) * (t_1 + t_2 + age >= 75)
     ) + (age >= 35) * (age < 45) * (
-      Int3_FN(0, t_1 + t_2, u_3, p) * (t_1 + t_2 + age < 45) +
-      Int3_FN(0, 45 - age, u_4, p) * (t_1 + t_2 + age >= 45) +
-      Int3_FN(45 - age, t_1 + t_2, u_4, p) * (t_1 + t_2 + age >= 45) * (t_1 + t_2 + age < 55) + 
-      Int3_FN(45 - age, 55 - age, u_4, p) * (t_1 + t_2 + age >= 55) + 
-      Int3_FN(55 - age, t_1 + t_2, u_5, p) * (t_1 + t_2 + age >= 55) * (t_1 + t_2 + age < 65) + 
-      Int3_FN(55 - age, 65 - age, u_5, p) * (t_1 + t_2 + age >= 65) + 
-      Int3_FN(65 - age, t_1 + t_2, u_6, p) * (t_1 + t_2 + age >= 65) * (t_1 + t_2 + age < 75) + 
-      Int3_FN(65 - age, 75 - age, u_6, p) * (t_1 + t_2 + age >= 75) + 
-      Int3_FN(75 - age, t_1 + t_2, u_7, p) * (t_1 + t_2 + age >= 75)
+      Int3_FN(0, t_1 + t_2, u_3, r) * (t_1 + t_2 + age < 45) +
+      Int3_FN(0, 45 - age, u_4, r) * (t_1 + t_2 + age >= 45) +
+      Int3_FN(45 - age, t_1 + t_2, u_4, r) * (t_1 + t_2 + age >= 45) * (t_1 + t_2 + age < 55) + 
+      Int3_FN(45 - age, 55 - age, u_4, r) * (t_1 + t_2 + age >= 55) + 
+      Int3_FN(55 - age, t_1 + t_2, u_5, r) * (t_1 + t_2 + age >= 55) * (t_1 + t_2 + age < 65) + 
+      Int3_FN(55 - age, 65 - age, u_5, r) * (t_1 + t_2 + age >= 65) + 
+      Int3_FN(65 - age, t_1 + t_2, u_6, r) * (t_1 + t_2 + age >= 65) * (t_1 + t_2 + age < 75) + 
+      Int3_FN(65 - age, 75 - age, u_6, r) * (t_1 + t_2 + age >= 75) + 
+      Int3_FN(75 - age, t_1 + t_2, u_7, r) * (t_1 + t_2 + age >= 75)
     ) + (age >= 45) * (age < 55) * (
-      Int3_FN(0, t_1 + t_2, u_4, p) * (t_1 + t_2 + age < 55) +
-      Int3_FN(0, 55 - age, u_5, p) * (t_1 + t_2 + age >= 55) +
-      Int3_FN(55 - age, t_1 + t_2, u_5, p) * (t_1 + t_2 + age >= 55) * (t_1 + t_2 + age < 65) + 
-      Int3_FN(55 - age, 65 - age, u_5, p) * (t_1 + t_2 + age >= 65) + 
-      Int3_FN(65 - age, t_1 + t_2, u_6, p) * (t_1 + t_2 + age >= 65) * (t_1 + t_2 + age < 75) + 
-      Int3_FN(65 - age, 75 - age, u_6, p) * (t_1 + t_2 + age >= 75) + 
-      Int3_FN(75 - age, t_1 + t_2, u_7, p) * (t_1 + t_2 + age >= 75)
+      Int3_FN(0, t_1 + t_2, u_4, r) * (t_1 + t_2 + age < 55) +
+      Int3_FN(0, 55 - age, u_5, r) * (t_1 + t_2 + age >= 55) +
+      Int3_FN(55 - age, t_1 + t_2, u_5, r) * (t_1 + t_2 + age >= 55) * (t_1 + t_2 + age < 65) + 
+      Int3_FN(55 - age, 65 - age, u_5, r) * (t_1 + t_2 + age >= 65) + 
+      Int3_FN(65 - age, t_1 + t_2, u_6, r) * (t_1 + t_2 + age >= 65) * (t_1 + t_2 + age < 75) + 
+      Int3_FN(65 - age, 75 - age, u_6, r) * (t_1 + t_2 + age >= 75) + 
+      Int3_FN(75 - age, t_1 + t_2, u_7, r) * (t_1 + t_2 + age >= 75)
     ) + (age >= 55) * (age < 65) * (
-      Int3_FN(0, t_1 + t_2, u_5, p) * (t_1 + t_2 + age < 65) +
-      Int3_FN(0, 65 - age, u_6, p) * (t_1 + t_2 + age >= 65) +
-      Int3_FN(65 - age, t_1 + t_2, u_6, p) * (t_1 + t_2 + age >= 65) * (t_1 + t_2 + age < 75) + 
-      Int3_FN(65 - age, 75 - age, u_6, p) * (t_1 + t_2 + age >= 75) + 
-      Int3_FN(75 - age, t_1 + t_2, u_7, p) * (t_1 + t_2 + age >= 75)
+      Int3_FN(0, t_1 + t_2, u_5, r) * (t_1 + t_2 + age < 65) +
+      Int3_FN(0, 65 - age, u_6, r) * (t_1 + t_2 + age >= 65) +
+      Int3_FN(65 - age, t_1 + t_2, u_6, r) * (t_1 + t_2 + age >= 65) * (t_1 + t_2 + age < 75) + 
+      Int3_FN(65 - age, 75 - age, u_6, r) * (t_1 + t_2 + age >= 75) + 
+      Int3_FN(75 - age, t_1 + t_2, u_7, r) * (t_1 + t_2 + age >= 75)
     ) + (age >= 65) * (age < 75) * (
-      Int3_FN(0, t_1 + t_2, u_6, p) * (t_1 + t_2 + age < 75) +
-      Int3_FN(0, 75 - age, u_7, p) * (t_1 + t_2 + age >= 75) +
-      Int3_FN(75 - age, t_1 + t_2, u_7, p) * (t_1 + t_2 + age >= 75)
+      Int3_FN(0, t_1 + t_2, u_6, r) * (t_1 + t_2 + age < 75) +
+      Int3_FN(0, 75 - age, u_7, r) * (t_1 + t_2 + age >= 75) +
+      Int3_FN(75 - age, t_1 + t_2, u_7, r) * (t_1 + t_2 + age >= 75)
     ) + (age >= 75) * (
-      Int3_FN(0, t_1 + t_2, u_7, p)
-    ) + Int4_FN(t_1, t_2, du_1e, p)
+      Int3_FN(0, t_1 + t_2, u_7, r)
+    ) + Int4_FN(t_1, t_2, du_1e, r)
 
   
   return(output)
@@ -633,13 +636,13 @@ disc_disu2_fun <- function(t_2, t_1, DU_all,
                            DU_0_1, DU_0_2, DU_0_3, DU_0_4, DU_0_5, 
                            b_5_1, b_5_2, b_5_3, b_5_4, b_5_5, 
                            b_6_1, b_6_2, b_6_3, b_6_4, b_6_5, 
-                           A_3, A_2, A_1, A_0, p = disc) {
+                           A_3, A_2, A_1, A_0, r = IDR) {
   (DU_all[1] * pnorm(DU_0_1 + b_5_1 * t_2 + b_6_1 * (A_3 * t_2^3 + A_2 * t_2^2 + A_1 * t_2 + A_0)) +
      DU_all[2] * pnorm(DU_0_2 + b_5_2 * t_2 + b_6_2 * (A_3 * t_2^3 + A_2 * t_2^2 + A_1 * t_2 + A_0)) +
      DU_all[3] * pnorm(DU_0_3 + b_5_3 * t_2 + b_6_3 * (A_3 * t_2^3 + A_2 * t_2^2 + A_1 * t_2 + A_0)) +
      DU_all[4] * pnorm(DU_0_4 + b_5_4 * t_2 + b_6_4 * (A_3 * t_2^3 + A_2 * t_2^2 + A_1 * t_2 + A_0)) +
      DU_all[5] * pnorm(DU_0_5 + b_5_5 * t_2 + b_6_5 * (A_3 * t_2^3 + A_2 * t_2^2 + A_1 * t_2 + A_0))) * 
-    exp(- p * (t_1 + t_2))
+    exp(- r * (t_1 + t_2))
 }
 
 ## -----------------------------------------------------------------------------
@@ -647,7 +650,7 @@ disc_disQ2_1p_fn <- function(t_1, t_2, DU_all,
                              DU_0_1, DU_0_2, DU_0_3, DU_0_4, DU_0_5, 
                              b_5_1, b_5_2, b_5_3, b_5_4, b_5_5, 
                              b_6_1, b_6_2, b_6_3, b_6_4, b_6_5,
-                             v_knots, v_a_1j, v_a_2j, v_a_3j, p = disc) {
+                             v_knots, v_a_1j, v_a_2j, v_a_3j, r = IDR) {
   # t_2 < k_1
   
   v_inputs <- list(t_1 = t_1, t_2 = t_2, 
@@ -692,7 +695,7 @@ disc_disQ2_1p_fn <- function(t_1, t_2, DU_all,
                        b_6_5 = b_6_5, 
                        DU_all = DU_all,
                        A_3 = 0, A_2 = 0, A_1 = 0, A_0 = 0, 
-                       p = p)$value # from 0 to t_2
+                       r = r)$value # from 0 to t_2
   
     return(output)
   })
@@ -702,7 +705,7 @@ disc_disQ2_2p_fn <- function(t_1, t_2, DU_all,
                              DU_0_1, DU_0_2, DU_0_3, DU_0_4, DU_0_5, 
                              b_5_1, b_5_2, b_5_3, b_5_4, b_5_5,
                              b_6_1, b_6_2, b_6_3, b_6_4, b_6_5,
-                             v_knots, v_a_1j, v_a_2j, v_a_3j, p = disc) {
+                             v_knots, v_a_1j, v_a_2j, v_a_3j, r = IDR) {
   # t_2 < k_2
   
   k_1 <- v_knots[1]
@@ -754,7 +757,7 @@ disc_disQ2_2p_fn <- function(t_1, t_2, DU_all,
                        b_6_5 = b_6_5, 
                        DU_all = DU_all,
                        A_3 = 0, A_2 = 0, A_1 = 0, A_0 = 0, 
-                       p = p)$value + # from 0 to k_1
+                       r = r)$value + # from 0 to k_1
       stats::integrate(disc_disu2_fun, 
                        lower = k_1, upper = t_2, 
                        t_1 = t_1,
@@ -775,7 +778,7 @@ disc_disQ2_2p_fn <- function(t_1, t_2, DU_all,
                        b_6_5 = b_6_5, 
                        DU_all = DU_all,
                        A_3 = a_13, A_2 = a_12, A_1 = a_11, A_0 = a_10, 
-                       p = p)$value # from k_1 to t_2
+                       r = r)$value # from k_1 to t_2
   
     return(output)
   })
@@ -785,7 +788,7 @@ disc_disQ2_3p_fn <- function(t_1, t_2, DU_all,
                              DU_0_1, DU_0_2, DU_0_3, DU_0_4, DU_0_5, 
                              b_5_1, b_5_2, b_5_3, b_5_4, b_5_5,
                              b_6_1, b_6_2, b_6_3, b_6_4, b_6_5,
-                             v_knots, v_a_1j, v_a_2j, v_a_3j, p = disc) {
+                             v_knots, v_a_1j, v_a_2j, v_a_3j, r = IDR) {
   # t_2 < k_3
   
   k_1 <- v_knots[1]
@@ -843,7 +846,7 @@ disc_disQ2_3p_fn <- function(t_1, t_2, DU_all,
                        b_6_5 = b_6_5, 
                        DU_all = DU_all,
                        A_3 = 0, A_2 = 0, A_1 = 0, A_0 = 0, 
-                       p = p)$value + # from 0 to k_1
+                       r = r)$value + # from 0 to k_1
       stats::integrate(disc_disu2_fun, 
                        lower = k_1, upper = k_2, 
                        t_1 = t_1,
@@ -864,7 +867,7 @@ disc_disQ2_3p_fn <- function(t_1, t_2, DU_all,
                        b_6_5 = b_6_5, 
                        DU_all = DU_all,
                        A_3 = a_13, A_2 = a_12, A_1 = a_11, A_0 = a_10,
-                       p = p)$value + # from k_1 to k_2
+                       r = r)$value + # from k_1 to k_2
       stats::integrate(disc_disu2_fun, 
                        lower = k_2, upper = t_2,  
                        t_1 = t_1,
@@ -885,7 +888,7 @@ disc_disQ2_3p_fn <- function(t_1, t_2, DU_all,
                        b_6_5 = b_6_5, 
                        DU_all = DU_all,
                        A_3 = a_23, A_2 = a_22, A_1 = a_21, A_0 = a_20,
-                       p = p)$value # from k_2 to t_2
+                       r = r)$value # from k_2 to t_2
 
     return(output)
   })
@@ -895,7 +898,7 @@ disc_disQ2_4p_fn <- function(t_1, t_2, DU_all,
                              DU_0_1, DU_0_2, DU_0_3, DU_0_4, DU_0_5,
                              b_5_1, b_5_2, b_5_3, b_5_4, b_5_5,
                              b_6_1, b_6_2, b_6_3, b_6_4, b_6_5,
-                             v_knots, v_a_1j, v_a_2j, v_a_3j, p = disc) {
+                             v_knots, v_a_1j, v_a_2j, v_a_3j, r = IDR) {
   # t_2 >= k_3
   
   k_1 <- v_knots[1]
@@ -957,7 +960,7 @@ disc_disQ2_4p_fn <- function(t_1, t_2, DU_all,
                        b_6_5 = b_6_5, 
                        DU_all = DU_all,
                        A_3 = 0, A_2 = 0, A_1 = 0, A_0 = 0, 
-                       p = p)$value + # from 0 to k_1
+                       r = r)$value + # from 0 to k_1
       stats::integrate(disc_disu2_fun, 
                        lower = k_1, upper = k_2, 
                        t_1 = t_1,
@@ -978,7 +981,7 @@ disc_disQ2_4p_fn <- function(t_1, t_2, DU_all,
                        b_6_5 = b_6_5, 
                        DU_all = DU_all,
                        A_3 = a_13, A_2 = a_12, A_1 = a_11, A_0 = a_10,
-                       p = p)$value + # from k_1 to k_2
+                       r = r)$value + # from k_1 to k_2
       stats::integrate(disc_disu2_fun, 
                        lower = k_2, upper = t_2,  
                        t_1 = t_1,
@@ -999,7 +1002,7 @@ disc_disQ2_4p_fn <- function(t_1, t_2, DU_all,
                        b_6_5 = b_6_5, 
                        DU_all = DU_all,
                        A_3 = a_23, A_2 = a_22, A_1 = a_21, A_0 = a_20,
-                       p = p)$value + # from k_2 to k_3
+                       r = r)$value + # from k_2 to k_3
       stats::integrate(disc_disu2_fun, 
                        lower = k_3, upper = t_2, 
                        t_1 = t_1,
@@ -1020,7 +1023,7 @@ disc_disQ2_4p_fn <- function(t_1, t_2, DU_all,
                        b_6_5 = b_6_5, 
                        DU_all = DU_all,
                        A_3 = 0, A_2 = 0, A_1 = a_31, A_0 = a_30,
-                       p = p)$value # from k_3 to t_2
+                       r = r)$value # from k_3 to t_2
 
     return(output)
   })
